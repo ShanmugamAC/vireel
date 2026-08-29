@@ -6,13 +6,16 @@ interface CreateProjectPayload {
   title?: string;
 }
 
+// Trailing slash matters: the backend router is mounted at "/projects/" for
+// the collection endpoints, and a request without it 307-redirects there.
+// Call the exact path directly instead of relying on that redirect.
 const createProject = async (payload: CreateProjectPayload): Promise<Project> => {
-  const { data } = await api.post<Project>('/projects', payload);
+  const { data } = await api.post<Project>('/projects/', payload);
   return data;
 };
 
 const listProjects = async (): Promise<ProjectListItem[]> => {
-  const { data } = await api.get<ProjectListItem[]>('/projects');
+  const { data } = await api.get<ProjectListItem[]>('/projects/');
   return data;
 };
 
