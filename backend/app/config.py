@@ -22,9 +22,14 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # OpenAI (Whisper + GPT pipeline)
     OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o-mini"
+
+    # Video pipeline
+    MEDIA_ROOT: str = "media"
 
     # Frontend / CORS
     VITE_API_URL: str = "http://localhost:8000"
