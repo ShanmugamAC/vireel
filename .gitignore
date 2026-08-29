@@ -19,6 +19,11 @@ htmlcov/
 .env.*
 !.env.example
 
+# --- yt-dlp cookies (real browser session, never commit) ---
+cookies/
+*.cookies.txt
+youtube_cookies.txt
+
 # --- Node / frontend ---
 node_modules/
 dist/

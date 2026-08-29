@@ -23,6 +23,11 @@ services:
       ALGORITHM: ${ALGORITHM:-HS256}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # Set to a real path only if ./cookies/youtube_cookies.txt exists (see
+      # README) - YouTube blocks anonymous requests from VPS/datacenter IPs
+      # ("Sign in to confirm you're not a bot") without this. Safe to leave
+      # unset; download.py only uses it if the file actually exists.
+      YT_COOKIES_FILE: /app/cookies/youtube_cookies.txt
     depends_on:
       db:
         condition: service_healthy
@@ -30,6 +35,9 @@ services:
       # Rendered trailer/summary outputs and downloaded source video live
       # here so they survive container restarts/rebuilds.
       - media_data:/app/media
+      # Drop a Netscape-format cookies.txt at ./cookies/youtube_cookies.txt
+      # (host side) to work around YouTube's anti-bot blocking. Optional.
+      - ./cookies:/app/cookies:ro
     ports:
       - "8000:8000"
 

@@ -16,8 +16,19 @@ logger = logging.getLogger(__name__)
 _FORMAT_SPEC = "bestvideo[ext=mp4][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4][height<=1080]/best"
 
 
-def download_source(source_url: str, project_id: int, media_root: Path) -> Path:
+def download_source(
+    source_url: str,
+    project_id: int,
+    media_root: Path,
+    cookies_file: str | None = None,
+) -> Path:
     """Download `source_url` into `{media_root}/{project_id}/source.<ext>`.
+
+    `cookies_file`, if given (a Netscape-format cookies.txt from a real,
+    logged-in browser session), is passed through to yt-dlp — YouTube
+    increasingly rejects anonymous requests from datacenter/VPS IPs with a
+    "Sign in to confirm you're not a bot" error, and a cookies file from a
+    real account is the standard workaround.
 
     Returns the Path to the downloaded video file. Raises whatever `yt_dlp`
     raises (typically `yt_dlp.utils.DownloadError`) on failure.
@@ -35,6 +46,8 @@ def download_source(source_url: str, project_id: int, media_root: Path) -> Path:
         "no_warnings": True,
         "logger": logger,
     }
+    if cookies_file and Path(cookies_file).is_file():
+        ydl_opts["cookiefile"] = cookies_file
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.extract_info(source_url, download=True)

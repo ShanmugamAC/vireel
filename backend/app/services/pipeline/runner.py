@@ -79,7 +79,12 @@ def run_pipeline(project_id: int) -> None:
         try:
             project.status = ProjectStatus.downloading
             db.commit()
-            video_path = download_source(project.source_url, project.id, media_root)
+            video_path = download_source(
+                project.source_url,
+                project.id,
+                media_root,
+                cookies_file=settings.YT_COOKIES_FILE or None,
+            )
             audio_path = extract_audio(video_path)
 
             project.status = ProjectStatus.transcribing

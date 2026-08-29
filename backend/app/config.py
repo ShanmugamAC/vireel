@@ -30,6 +30,12 @@ class Settings(BaseSettings):
 
     # Video pipeline
     MEDIA_ROOT: str = "media"
+    # Path to a Netscape-format cookies.txt exported from a real, logged-in
+    # YouTube browser session. YouTube increasingly blocks anonymous requests
+    # from datacenter/VPS IPs ("Sign in to confirm you're not a bot"); a
+    # cookies file from a real account works around this. Optional — leave
+    # blank to fetch without cookies (works for many videos, but not all).
+    YT_COOKIES_FILE: str = ""
 
     # Frontend / CORS
     VITE_API_URL: str = "http://localhost:8000"
