@@ -43,3 +43,6 @@ media/
 .idea/
 .DS_Store
 Thumbs.db
+backend/ca_bundle.pem
+backend/vireel_dev.db
+backend/run_dev.py

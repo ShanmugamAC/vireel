@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { PageWrapper } from '@/components/layout/PageWrapper';
+import { AppHeader } from '@/components/layout/AppHeader';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { AnimatedList } from '@/components/ui/AnimatedList';
@@ -20,6 +21,7 @@ export function DashboardPage() {
 
   return (
     <PageWrapper>
+      <AppHeader showBack={false} />
       <div className="mx-auto max-w-3xl p-6">
         <div className="mb-6 flex items-center justify-between">
           <div>

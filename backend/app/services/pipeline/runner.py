@@ -74,7 +74,13 @@ def run_pipeline(project_id: int) -> None:
             return
 
         media_root = Path(settings.MEDIA_ROOT)
-        client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+        # Explicit timeout + a single retry: the SDK's defaults (600s timeout,
+        # 2 retries) let one stalled request block a project for up to ~30
+        # minutes with no visible feedback. 5 minutes per call is generous
+        # enough for a long transcription/analysis while still failing in a
+        # bounded time so a stuck project surfaces as `failed` (retryable)
+        # instead of looking permanently stuck at "transcribing".
+        client = openai.OpenAI(api_key=settings.OPENAI_API_KEY, timeout=300.0, max_retries=1)
 
         try:
             project.status = ProjectStatus.downloading
@@ -129,7 +135,7 @@ def run_pipeline(project_id: int) -> None:
                 output.status = OutputStatus.rendering
                 db.commit()
 
-                script = generate_script(output.output_type, output.category, highlights, segments, client)
+                script = generate_script(output.output_type, output.category, highlights, segments)
                 output_path = media_root / str(project.id) / f"{output.output_type.value}.mp4"
                 duration = render_output(video_path, script["cuts"], script["broll_overlays"], output_path)
 

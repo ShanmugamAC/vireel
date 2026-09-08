@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageWrapper } from '@/components/layout/PageWrapper';
+import { AppHeader } from '@/components/layout/AppHeader';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { AnimatedInput } from '@/components/ui/AnimatedInput';
 import { GradientButton } from '@/components/ui/GradientButton';
@@ -55,6 +56,7 @@ export function NewProjectPage() {
 
   return (
     <PageWrapper>
+      <AppHeader />
       <div className="mx-auto max-w-lg p-6">
         <h1 className="mb-6 text-2xl font-semibold">New Project</h1>
         <GlassCard>

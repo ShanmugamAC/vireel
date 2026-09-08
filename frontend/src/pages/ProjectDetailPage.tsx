@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageWrapper } from '@/components/layout/PageWrapper';
+import { AppHeader } from '@/components/layout/AppHeader';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { StatusBadge } from '@/components/projects/StatusBadge';
@@ -36,6 +37,7 @@ export function ProjectDetailPage() {
   if (isLoading) {
     return (
       <PageWrapper>
+        <AppHeader />
         <div className="p-6 text-sm opacity-70">Loading project...</div>
       </PageWrapper>
     );
@@ -44,6 +46,7 @@ export function ProjectDetailPage() {
   if (isError || !project) {
     return (
       <PageWrapper>
+        <AppHeader />
         <div className="p-6 text-sm text-red-500">Failed to load project.</div>
       </PageWrapper>
     );
@@ -51,6 +54,7 @@ export function ProjectDetailPage() {
 
   return (
     <PageWrapper>
+      <AppHeader />
       <div className="mx-auto max-w-3xl p-6">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>

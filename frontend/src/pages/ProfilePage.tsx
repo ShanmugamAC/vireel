@@ -3,6 +3,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { AnimatedInput } from '@/components/ui/AnimatedInput';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { PageWrapper } from '@/components/layout/PageWrapper';
+import { AppHeader } from '@/components/layout/AppHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { authService } from '@/services/authService';
 import { getErrorMessage } from '@/lib/errors';
@@ -34,6 +35,7 @@ export function ProfilePage() {
 
   return (
     <PageWrapper>
+      <AppHeader />
       <div className="mx-auto max-w-lg p-6">
         <h1 className="mb-6 text-2xl font-semibold">Profile</h1>
         <GlassCard>

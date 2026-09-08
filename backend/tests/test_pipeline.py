@@ -298,46 +298,107 @@ def test_analyze_highlights_missing_fields_raises_runtime_error():
 
 
 # ---------------------------------------------------------------------------
-# generate_script (mocked OpenAI client)
+# generate_script (deterministic, no LLM call)
 # ---------------------------------------------------------------------------
 
+# Highlights spread evenly across a 10-minute source video, best-scored first
+# but NOT in chronological order (mirrors what analyze_highlights returns).
+_SPREAD_HIGHLIGHTS = [
+    {"start": 40.0, "end": 45.0, "score": 0.9, "reason": "a"},
+    {"start": 560.0, "end": 566.0, "score": 0.85, "reason": "b"},
+    {"start": 10.0, "end": 14.0, "score": 0.8, "reason": "c"},
+    {"start": 300.0, "end": 310.0, "score": 0.75, "reason": "d"},
+    {"start": 120.0, "end": 128.0, "score": 0.7, "reason": "e"},
+    {"start": 450.0, "end": 460.0, "score": 0.65, "reason": "f"},
+    {"start": 200.0, "end": 210.0, "score": 0.6, "reason": "g"},
+]
 
-def test_generate_script_parses_expected_shape():
-    client = MagicMock()
-    client.chat.completions.create.return_value = _chat_response(
-        json.dumps({"cuts": [{"start": 0.0, "end": 30.0}], "broll_overlays": []})
-    )
 
-    script = generate_script(
-        OutputType.trailer_30s, OutputCategory.energetic, [], [], client
-    )
-    assert script == {"cuts": [{"start": 0.0, "end": 30.0}], "broll_overlays": []}
+def test_generate_script_accumulates_chronologically_until_target_duration():
+    script = generate_script(OutputType.trailer_30s, OutputCategory.energetic, _SPREAD_HIGHLIGHTS, [])
+    cuts = script["cuts"]
+    assert cuts, "expected at least one cut"
+    # Cuts are in chronological (start-time) order, not score order.
+    starts = [c["start"] for c in cuts]
+    assert starts == sorted(starts)
+    total = sum(c["end"] - c["start"] for c in cuts)
+    assert total <= 30.0 + 1e-6
+
+
+def test_generate_script_longer_outputs_are_a_superset_of_shorter_ones():
+    """Confirms the fix for outputs previously containing identical content:
+    the 1-minute output must cover everything the 30-second output does,
+    plus more, rather than being an independently (and differently) chosen
+    selection from the same highlights."""
+    trailer = generate_script(OutputType.trailer_30s, OutputCategory.energetic, _SPREAD_HIGHLIGHTS, [])
+    narrative = generate_script(OutputType.trailer_1min, OutputCategory.dramatic, _SPREAD_HIGHLIGHTS, [])
+    summary = generate_script(OutputType.summary_3min, OutputCategory.educational, _SPREAD_HIGHLIGHTS, [])
+
+    assert len(trailer["cuts"]) <= len(narrative["cuts"]) <= len(summary["cuts"])
+    for a, b in zip(trailer["cuts"], narrative["cuts"]):
+        assert a["start"] == b["start"]
+    for a, b in zip(narrative["cuts"], summary["cuts"]):
+        assert a["start"] == b["start"]
 
 
 def test_generate_script_forces_empty_broll_for_non_summary_outputs():
-    client = MagicMock()
-    # Model misbehaves and returns broll anyway for a trailer output.
-    client.chat.completions.create.return_value = _chat_response(
-        json.dumps(
-            {
-                "cuts": [{"start": 0.0, "end": 30.0}],
-                "broll_overlays": [
-                    {"base_start": 1.0, "base_end": 2.0, "source_start": 10.0, "source_end": 11.0}
-                ],
-            }
-        )
-    )
-
-    script = generate_script(OutputType.trailer_1min, OutputCategory.dramatic, [], [], client)
+    script = generate_script(OutputType.trailer_1min, OutputCategory.dramatic, _SPREAD_HIGHLIGHTS, [])
     assert script["broll_overlays"] == []
 
 
-def test_generate_script_malformed_json_raises_runtime_error():
-    client = MagicMock()
-    client.chat.completions.create.return_value = _chat_response("not json")
+def test_generate_script_no_broll_when_highlights_fit_entirely_in_target():
+    # All 7 highlights total ~53s, well under the 180s target, so every
+    # highlight is used as a cut and none are left over for B-roll.
+    script = generate_script(OutputType.summary_3min, OutputCategory.educational, _SPREAD_HIGHLIGHTS, [])
+    assert script["broll_overlays"] == []
 
-    with pytest.raises(RuntimeError, match="Failed to parse edit script response"):
-        generate_script(OutputType.summary_3min, OutputCategory.educational, [], [], client)
+
+def test_generate_script_summary_includes_broll_from_leftover_highlights():
+    # 12 highlights x 20s = 240s of material, more than the 180s summary
+    # target, so some highlights are left over and should become B-roll.
+    long_highlights = [
+        {"start": float(i * 30), "end": float(i * 30 + 20), "score": 1.0 - i * 0.01, "reason": "x"}
+        for i in range(12)
+    ]
+    script = generate_script(OutputType.summary_3min, OutputCategory.educational, long_highlights, [])
+    assert script["broll_overlays"]
+    for overlay in script["broll_overlays"]:
+        assert overlay["base_end"] > overlay["base_start"]
+        assert overlay["source_end"] > overlay["source_start"]
+
+
+def test_generate_script_falls_back_to_segments_when_no_highlights():
+    segments = [{"start": 0.0, "end": 20.0, "text": "hi"}, {"start": 20.0, "end": 40.0, "text": "bye"}]
+    script = generate_script(OutputType.trailer_30s, OutputCategory.energetic, [], segments)
+    assert script["cuts"]
+
+
+def test_generate_script_raises_when_no_timing_data_available():
+    with pytest.raises(ValueError, match="No highlights or transcript segments"):
+        generate_script(OutputType.summary_3min, OutputCategory.educational, [], [])
+
+
+def test_generate_script_uses_whole_video_when_source_shorter_than_target():
+    # A 150-second source is under the 180s summary target -- there's
+    # nothing to trim, so the whole video should be used, not a
+    # highlight-picked subset that skips parts of an already-short video.
+    segments = [{"start": 0.0, "end": 150.0, "text": "..."}]
+    script = generate_script(OutputType.summary_3min, OutputCategory.educational, _SPREAD_HIGHLIGHTS, segments)
+    assert script["cuts"] == [{"start": 0.0, "end": 150.0}]
+    assert script["broll_overlays"] == []
+
+
+def test_generate_script_uses_whole_video_for_every_output_when_very_short():
+    # A 20-second source is shorter than even the 30s trailer target, so
+    # all three output types should each just use the entire 20 seconds.
+    segments = [{"start": 0.0, "end": 20.0, "text": "..."}]
+    for output_type, category in (
+        (OutputType.trailer_30s, OutputCategory.energetic),
+        (OutputType.trailer_1min, OutputCategory.dramatic),
+        (OutputType.summary_3min, OutputCategory.educational),
+    ):
+        script = generate_script(output_type, category, _SPREAD_HIGHLIGHTS, segments)
+        assert script["cuts"] == [{"start": 0.0, "end": 20.0}]
 
 
 # ---------------------------------------------------------------------------

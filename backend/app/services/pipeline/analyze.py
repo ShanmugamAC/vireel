@@ -7,8 +7,12 @@ from app.config import settings
 
 _SYSTEM_PROMPT = (
     "You are a video editor's assistant. Given a timestamped transcript, identify the "
-    "moments that would make the strongest hooks or highlights for a short trailer. "
-    "Respond with STRICT JSON only, no prose, no markdown fences, in exactly this shape: "
+    "moments that would make the strongest hooks or highlights across the WHOLE video, not "
+    "just its opening. Aim for 8-15 highlights (fewer only if the video is genuinely too short "
+    "to support that many) spread across the beginning, middle, and end, so downstream edits of "
+    "different lengths have enough distinct material to draw from instead of all reusing the "
+    "same one or two clips. Respond with STRICT JSON only, no prose, no markdown fences, in "
+    "exactly this shape: "
     '{"highlights": [{"start": <float seconds>, "end": <float seconds>, '
     '"score": <float 0-1>, "reason": "<short string>"}]} '
     "Order the list from best to worst highlight."

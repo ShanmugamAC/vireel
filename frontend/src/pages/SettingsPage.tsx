@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom';
 import { PageWrapper } from '@/components/layout/PageWrapper';
+import { AppHeader } from '@/components/layout/AppHeader';
 import { GlassCard } from '@/components/ui/GlassCard';
 
 export function SettingsPage() {
   return (
     <PageWrapper>
+      <AppHeader />
       <div className="mx-auto max-w-lg p-6">
         <h1 className="mb-6 text-2xl font-semibold">Settings</h1>
         <GlassCard>
