@@ -34,10 +34,19 @@ WORKDIR /app
 # Runtime OS deps:
 #   - ffmpeg: required by the render pipeline (trailer/summary compositing)
 #   - libpq5: runtime Postgres client library for psycopg2
+#   - curl: fetches the deno installer below (yt-dlp's JS runtime)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libpq5 \
+    curl \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
+
+# yt-dlp needs a JS runtime to solve YouTube's player-signature challenges;
+# without one it warns and can silently resolve the wrong stream for a
+# given URL (observed: a ~12 minute stream returned for a ~19 second video).
+ENV DENO_INSTALL=/usr/local
+RUN curl -fsSL https://deno.land/install.sh | sh
 
 # Bring over installed Python packages + console scripts (uvicorn, yt-dlp)
 # from the builder stage so PATH resolves them without recompiling.
@@ -55,10 +64,10 @@ RUN useradd -m appuser \
 
 USER appuser
 
-# Confirm both external binaries resolve on PATH for the non-root user.
-# Fails the build early if either is missing, rather than failing at
+# Confirm all external binaries resolve on PATH for the non-root user.
+# Fails the build early if any is missing, rather than failing at
 # render-time inside a running container.
-RUN ffmpeg -version && yt-dlp --version
+RUN ffmpeg -version && yt-dlp --version && deno --version
 
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
